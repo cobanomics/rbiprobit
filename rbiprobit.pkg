@@ -10,8 +10,8 @@ d to be binary.
 d
 d Distribution-Date: 20210813
 d
-d Author: Mustafa Coban, Institute for Employment Research (Germany)
-d Support: email mustafa.coban@iab.de
+d Author:  Mustafa Coban, Institute for Employment Research (Germany)
+d Support: mustafa.coban@iab.de
 d
 f ado/rbiprobit.ado
 f ado/rbiprobit_lf1.ado
@@ -20,5 +20,5 @@ f ado/rbiprobit_margdec.ado
 f ado/rbiprobit_tmeffects.ado
 f ado/rbiprobit.sthlp
 f ado/rbiprobit_postestimation.sthlp
-f ado/rbiprobit_margdec.ado
-f ado/rbiprobit_tmeffects.ado
+f ado/rbiprobit_margdec.sthlp
+f ado/rbiprobit_tmeffects.sthlp
