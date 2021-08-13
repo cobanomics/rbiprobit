@@ -6,12 +6,12 @@
 2. [Description](#2-description)
 3. [Options](#3-options)
 4. [Econometric Model](#4-econometric-model)
-	4.1. [Recursive Bivariate Model](#41-recursive-bivariate-model)
-	4.2. [Treatment Effects](#42-treatment-effects)
-	4.3. [Decomposition of Marginal Effects](#43-decomposition-of-marginal-effects)
+		4.1. [Recursive Bivariate Model](#41-recursive-bivariate-model)
+		4.2. [Treatment Effects](#42-treatment-effects)
+		4.3. [Decomposition of Marginal Effects](#43-decomposition-of-marginal-effects)
 5. [Postestimation Commands](#5-postestimation-commands)
-  5.1. [Treatment Effects Estimation](#51-treatment-effects-estimation)
-  5.2. [Margins Estimation](#52-margins-estimation)
+		5.1. [Treatment Effects Estimation](#51-treatment-effects-estimation)
+		5.2. [Margins Estimation](#52-margins-estimation)
 6. [Examples](#6-examples)
 7. [References](#7-references)
 8. [About](#8-about)
@@ -59,7 +59,7 @@ _options_ | Description
 
 The following postestimation commands are of __special interest__ after `rbiprobit`:
 
-<div style="width:160px">Command</div>  | Description
+Command  | Description
 -------------| -------------
 `rbiprobit margdec`  |  marginal means, predictive margins, marginal effects, and average marginal effects of _indepvars_ and _indepvars_en_
 `rbiprobit tmeffects`  | treatment effects of treatment variable _depvar_en_
@@ -74,7 +74,7 @@ Instead, use the postestimation commands `rbiprobit margdec` and `rbiprobit tmef
 
 The following postestimation commands are also available after `rbiprobit`:
 
-<div style="width:160px">Command</div>  | Description
+Command  | Description
 -------------| -------------
 `predict`  |  predictions, residuals, influence statistics, and other diagnostic measures
 `predictnl`  | point estimates, standard errors, testing, and inference for generalized predictions
@@ -405,8 +405,8 @@ Greene, W.H. (2018). Econometric Analysis, 8th Edition, Pearson.
 __Mustafa Coban__
 Institute for Employment Research (Germany)
 
-email:         mustafa.coban@iab.de
-github:        github.com/cobanomics
+email:         mustafa.coban@iab.de\
+github:        github.com/cobanomics\
 webpage:       mustafacoban.de
 
 
