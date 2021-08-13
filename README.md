@@ -6,12 +6,12 @@
 2. [Description](#2-description)
 3. [Options](#3-options)
 4. [Econometric Model](#4-econometric-model)
-		4.1. [Recursive Bivariate Model](#41-recursive-bivariate-model)
-		4.2. [Treatment Effects](#42-treatment-effects)
-		4.3. [Decomposition of Marginal Effects](#43-decomposition-of-marginal-effects)
+4.1. [Recursive Bivariate Model](#41-recursive-bivariate-model)
+4.2. [Treatment Effects](#42-treatment-effects)
+4.3. [Decomposition of Marginal Effects](#43-decomposition-of-marginal-effects)
 5. [Postestimation Commands](#5-postestimation-commands)
-		5.1. [Treatment Effects Estimation](#51-treatment-effects-estimation)
-		5.2. [Margins Estimation](#52-margins-estimation)
+5.1. [Treatment Effects Estimation](#51-treatment-effects-estimation)
+5.2. [Margins Estimation](#52-margins-estimation)
 6. [Examples](#6-examples)
 7. [References](#7-references)
 8. [About](#8-about)
@@ -406,8 +406,8 @@ __Mustafa Coban__
 Institute for Employment Research (Germany)
 
 email:         mustafa.coban@iab.de\
-github:        github.com/cobanomics\
-webpage:       mustafacoban.de
+github:        [github.com/cobanomics](https://github.com/cobanomics)\
+webpage:       [mustafacoban.de]("https://www.mustafacoban.de)
 
 
 ## 9. How to Install
