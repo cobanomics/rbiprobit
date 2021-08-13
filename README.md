@@ -32,7 +32,7 @@ Independent variables may contain factor variables. All variables may contain ti
 
 `rbiprobit` is a user-written command that fits a recursive bivariate probit regression using maximum likelihood estimation. It is implemented as an `lf1` ml evaluator. The model involves an outcome equation with the dependent variable _depvar_ and a treatment equation with the dependent variable _depvar_en_. Both dependent variables _depvar_ and _depvar_en_ have to be binary and coded as 0/1 variables.
 
-right-hand side of the outcome equation. The independent variables in _indepvars_ and _indepvars_en_ may be different or identical. rbiprobit is limited to a recursive model with two equations.
+`rbiprobit` automatically adds the treatment variable depvar_en as an independent variable on the right-hand side of the outcome equation. The independent variables in _indepvars_ and _indepvars_en_ may be different or identical. rbiprobit is limited to a recursive model with two equations.
 
 _The current version of the command is stable and additional features are still work-in-progress. Future versions will include all suitable options of_ `biprobit`.
 
