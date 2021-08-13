@@ -398,7 +398,7 @@ _ATE, ATET, and ATEC of treatment variable_ `propgram`
 
 Greene, W.H. (2018). Econometric Analysis, 8th Edition, Pearson.
 
-[Hasebe, T. (2013)]("https://doi.org/10.1016/j.econlet.2013.08.028"). Marginal effects of a bivariate binary choice model, Economic Letters 121(2), pp. 298-301.
+[Hasebe, T. (2013)](https://doi.org/10.1016/j.econlet.2013.08.028). Marginal effects of a bivariate binary choice model, Economic Letters 121(2), pp. 298-301.
 
 ## 8. About
 
