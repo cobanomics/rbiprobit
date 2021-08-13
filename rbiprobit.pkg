@@ -1,6 +1,13 @@
 v 3
 d rbiprobit: Stata module to estimate recursive bivariate probit regressions
 d 
+d {cmd:rbiprobit} is a user-written command that fits a recursive 
+d bivariate probit regression using maximum likelihood estimation. 
+d The model involves an outcome equation and a treatment equation,
+d whereas the treatment variable is an endogenous explanatory 
+d variable of the outcome equation. Both dependent variables have 
+d to be binary.
+d
 d Distribution-Date: 20210813
 d
 d Author: Mustafa Coban, Institute for Employment Research (Germany)
