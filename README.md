@@ -402,7 +402,7 @@ Greene, W.H. (2018). Econometric Analysis, 8th Edition, Pearson.
 
 ## 8. About
 
-__Mustafa Coban__
+__Mustafa Coban__\
 Institute for Employment Research (Germany)
 
 email:         mustafa.coban@iab.de\
