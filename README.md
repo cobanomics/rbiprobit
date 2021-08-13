@@ -134,8 +134,8 @@ __Description of `tmeffect()`__
 Effecttype | Description
 -----------| -----------
 `ate`  |  rbiprobit tmeffects reports the average treatment effect, i.e. the finite difference between the univariate (marginal) probability of success Pr(depvar=1) and univariate (marginal) probability of failure Pr(depvar=1).
-`atet`  |  rbiprobit tmeffects reports the average treatment effect on the treated, i.e. the finite difference between the univariate (marginal) probability of success conditioned on sucess in treatment equation normal(depvar=1|depvar_en=1) and the univariate (marginal) probability of sucess conditioned on failure in treatment equation normal(depvar=1|depvar_en=0).
-`atec`  | rbiprobit tmeffects reports the average treatment effect on the conditional probability, i.e. the finite difference between the conditional (on success in treatment equation) predicted probability of success Pr(depvar=1|depvar_en=1) and the conditional (on failure in treatment equation) predicted probability of success Pr(depvar=1|depvar_en=0).
+`atet`  |  rbiprobit tmeffects reports the average treatment effect on the treated, i.e. the finite difference between the univariate (marginal) probability of success conditioned on sucess in treatment equation normal(depvar=1\|depvar_en=1) and the univariate (marginal) probability of sucess conditioned on failure in treatment equation normal(depvar=1\|depvar_en=0).
+`atec`  | rbiprobit tmeffects reports the average treatment effect on the conditional probability, i.e. the finite difference between the conditional (on success in treatment equation) predicted probability of success Pr(depvar=1\|depvar_en=1) and the conditional (on failure in treatment equation) predicted probability of success Pr(depvar=1\|depvar_en=0).
 
 
 ### 5.2 Margins Estimation
@@ -414,7 +414,7 @@ webpage:       [mustafacoban.de](https://www.mustafacoban.de)
 
 The latest version can be obtained via
 ```git
-net install rbiprobit, from("https://github.com/cobanomics/rbiprobit/")
+net install rbiprobit, from("https://cobanomics.github.io/rbiprobit/")
 ```
 
 ## 10. Changelog
