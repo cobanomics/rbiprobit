@@ -1,1 +1,5 @@
+title: rbiprobit
+description: Stata module to estimate recursive bivariate probit regressions
+google_analytics:
+show_downloads: ["true"]
 theme: jekyll-theme-cayman
