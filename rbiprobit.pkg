@@ -13,12 +13,12 @@ d
 d Author:  Mustafa Coban, Institute for Employment Research (Germany)
 d Support: mustafa.coban@iab.de
 d
-F ado/rbiprobit.ado
-F ado/rbiprobit.sthlp
-F ado/rbiprobit_lf1.ado
-F ado/rbiprobit_margdec.ado
-F ado/rbiprobit_margdec.sthlp
-F ado/rbiprobit_p.ado
-F ado/rbiprobit_postestimation.sthlp
-F ado/rbiprobit_tmeffects.ado
-F ado/rbiprobit_tmeffects.sthlp
+f ado\rbiprobit.ado
+f ado\rbiprobit.sthlp
+f ado\rbiprobit_lf1.ado
+f ado\rbiprobit_margdec.ado
+f ado\rbiprobit_margdec.sthlp
+f ado\rbiprobit_p.ado
+f ado\rbiprobit_postestimation.sthlp
+f ado\rbiprobit_tmeffects.ado
+f ado\rbiprobit_tmeffects.sthlp
