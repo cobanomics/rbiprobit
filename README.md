@@ -414,7 +414,7 @@ webpage:       [mustafacoban.de](https://www.mustafacoban.de)
 
 The latest version can be obtained via
 ```git
-net install rbiprobit, from("https://raw.githubusercontent.com/cobanomics/rbiprobit/main/")
+net install rbiprobit, from("https://cobanomics.github.io/rbiprobit/")
 ```
 
 ## 10. Changelog
