@@ -1,4 +1,4 @@
-*! version 1.0.0 , 13aug2021
+*! version 1.1.0 , 18apr2022
 *! Author: Mustafa Coban, Institute for Employment Research (Germany)
 *! Website: mustafacoban.de
 *! Support: mustafa.coban@iab.de
@@ -9,12 +9,12 @@
 /****************************************************************/
 
 
-
+	
 /* MARGINS */
 program define rbiprobit_margdec, eclass
 	
-	version 15.1
-	syntax [anything] [if] [in] [, *]
+	version 11
+	syntax [anything] [if] [in] [pw fw iw] [, *]
 	
 	if ("`e(cmd)'" != "rbiprobit") error 301
 	
@@ -24,20 +24,31 @@ program define rbiprobit_margdec, eclass
 	
 	*!	parse original rbiprobit
 	local rbipr_cmdl = "`e(cmdline)'"
-	local 0: subinstr local rbipr_cmdl "rbiprobit" "", word
+	local rbipr_cmdl: 	list retokenize rbipr_cmdl
+	local pfxpos: 		list posof "rbiprobit" in rbipr_cmdl
+	
+	local pfxsub ""
+	forvalue x = 1(1)`pfxpos'{
+		local wd: word `x' of `rbipr_cmdl'
+		local pfxsub = "`pfxsub' `wd'"
+	}
+	local pfxsub: 	list retokenize pfxsub
+	
+	local 0 = subinstr("`rbipr_cmdl'","`pfxsub'","",1)
+	local pfxcmd = subinstr("`pfxsub'","rbiprobit","",1)
 	
 	gettoken dep1 0 : 0, parse(" =,[")
-	
-	
-	
+
+
 	*!	Allow "=" after depvar	
 	gettoken equals rest : 0, parse(" =")
 	if "`equals'" == "=" { 
-		local 0 `"`rest'"'
-	}		
+		local 0 `"`rest'"' 
+	}	
+	
 	
 	*! parse indepvars
-	syntax [varlist(numeric default=none ts fv)] [if] [in] , /*
+	syntax [varlist(numeric default=none ts fv)] [if] [in] [pw fw iw], /*
 			*/ ENDOGenous(string) [ * ]
 			
 	local indep1 	`varlist'
@@ -49,30 +60,68 @@ program define rbiprobit_margdec, eclass
 	qui gen		`rbipr_touse' = 1		if e(sample)
 	qui replace `rbipr_touse' = 0		if `rbipr_touse' == .
 	
+	local wtypecmd `weight'
+	local wtexpcmd `"`exp'"'
+	if "`weight'" != "" { 
+		local wgtcmd `"[`weight'`exp']"'  
+	}
+	
+	
 	*! parse indepvars_en
 	EndogEqMarg dep2 indep2 option2 : `"`endogenous'"'
 	
+
+	tsunab dep1: `dep1'
+	tsunab dep2: `dep2'
+				
+	rmTS `dep1'
+	confirm var	`rmTSvar'
+	local dep1n	`rmTSvar'
 	
+	rmTS `dep2'
+	confirm var `rmTSvar'
+	local dep2n `rmTSvar'
 	
 	
 	*!	parse rbiprobit margdec
-	local 0 `origin'
-	syntax [anything] [if] [in], [/*
-		*/	effect(string) 			/* 	
-		*/	PRedict(string) 		/*
+	local 0 `origin'	
+	syntax [anything] [if] [in] [pw fw iw], [/*
+		*/	effect(string) PRedict(string) post		/* 
 		*/	dydx(passthru) eyex(passthru) eydx(passthru) dyex(passthru)	/*
-		*/	post 					/*
-		*/	Level(cilevel)			/*
+		*/	VCE(passthru) NOWEIGHTs	NOEsample force	Level(cilevel)	/*
 		*/	*]
+	
+			
+	if "`anything'" != ""{
+		dis as err "{it: marginlist} not allowed."
+		exit 198
+	}
 	
 	local margopts0 `options'
 	_get_diopts diopts margopts0, `margopts0'
-
+	
+	if "`margopts0'" != ""{
+		dis as err "Following options or their multiples are not allowed: {bf: `margopts0'}"
+		dis as res	"See {help rbiprobit margdec}." 
+		exit 198
+	}
+	
+	local wtype `weight'
+	local wtexp `"`exp'"'
+	if "`weight'" != "" { 
+		local wgt `"[`weight'`exp']"'  
+	}
+	
 	if "`level'" != ""{
 		local level "level(`level')"
 	}
 	
+	
 	*! effect()
+	if inlist("`effect'","direct","indirect") & inlist("`predict'","pmarg1","pmarg2","xb1","xb2"){
+		dis as err "{bf:effect} option {bf:`effect'} not approriate with {bf:`predict'}; use {bf:effect(total)}."
+		exit 322
+	}
 	if "`effect'" == ""{
 		local effect "total"
 	}
@@ -80,7 +129,8 @@ program define rbiprobit_margdec, eclass
 		dis in red "option effect() incorrectly specified."
 		error 198
 	}
-	
+		
+		
 	*! predict()
 	if 	inlist("`predict'","p11","p10","p01","p00","pmarg1") | ///
 		inlist("`predict'","pmarg2","pcond1","pcond2","xb1","xb2"){
@@ -98,9 +148,10 @@ program define rbiprobit_margdec, eclass
 		exit 198 
 	}
 	
+	
 	*! parse dydx(), eyex(), dyex(), or eydx()
 	if "`dydx'`eyex'`dyex'`eydx'" != ""{
-		
+	
 		opts_exclusive `"`dydx' `eyex' `dyex' `eydx'"'
 		
 		tempname rbipr_beta
@@ -111,47 +162,60 @@ program define rbiprobit_margdec, eclass
 		}
 		
 		ParseDyDx, `dydx' `eyex' `dyex' `eydx' ///
-					dep2(`dep2') matrix(`rbipr_beta') `dydxeffect'
+					dep2(`dep2') dep2n(`dep2n') matrix(`rbipr_beta') `dydxeffect'
 	}
+	
+
 	
 	*! total marginal effect	
 	if "`effect'" == "total"{
-
-		qui: `rbipr_cmdl'
+		
+		qui `rbipr_cmdl'
 		
 		tempname margfailed
+		
 		if inlist("`predict'","p11","p10","p01","p00","pcond1","pcond2"){
 			
 			tempvar dep2orig
-			qui: clonevar `dep2orig' = `dep2'
+			qui: clonevar `dep2orig' = `dep2n'
 			
 			if inlist("`predict'","p11","p01","pcond1","pcond2"){
 			
-				qui: replace `dep2' = 1
+				qui: replace `dep2n' = 1
 				
-				cap noi margins `anything' `if' `in', /*
-							*/	predict(`predict') `dydx' `post' `level' `diopts'	
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
 				scalar `margfailed' = _rc
-				qui: replace `dep2' = `dep2orig'
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
-			else{				
-				qui: replace `dep2' = 0
+			else{	
+				qui: replace `dep2n' = 0
 				
-				cap noi margins `anything' `if' `in', /*
-							*/	predict(`predict') `dydx' `post' `level' `diopts'
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
-				scalar `margfailed' = _rc			
-				qui: replace `dep2' = `dep2orig'
+				scalar `margfailed' = _rc
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
 		}
-		else{
-			cap noi margins `anything' `if' `in', /*
-						*/	predict(`predict') `dydx' `post' `level' `diopts'		
+		else{		
+			cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
+			
 			scalar `margfailed' = _rc	
 		}
 		
 		if `margfailed' == 0{
+			
 			*! adjust e() and r()
 			local marg_bascmd 	= "margins"
 			local marg_cmdl		= "rbiprobit margdec `0'"
@@ -159,9 +223,11 @@ program define rbiprobit_margdec, eclass
 			if "`post'" == "post"{
 				MargErt ,  bascmd(`marg_bascmd') cmdl(`marg_cmdl')
 			}
+		
 			MargRt , bascmd(`marg_bascmd') cmdl(`marg_cmdl')
 			
-		}			
+		}
+			
 		exit `margfailed'
 	}
 	
@@ -182,87 +248,117 @@ program define rbiprobit_margdec, eclass
 		}
 	}
 	
-	*! clone indepvars and indepvars_en wit tempvars
+	
+	*! clone indepvars and indepvars_en with tempvars
 	ParseClonIndep, indep1(`indep1') indep2(`indep2') ///
 					indep1varn(`indep1_varn') indep2varn(`indep2_varn') ///
 					clone1(`clonelist1') clone2(`clonelist2')
 	
+
+	
 	*! direct marginal effect
 	if "`effect'" == "direct"{		
-		
-		qui: rbiprobit `dep1' = `indep1' `ifcmd' `incmd', ///
-				endog(`dep2' = `indep2new', `option2') `option0'
+				
+		qui{
+			`pfxcmd' rbiprobit	`dep1' = `indep1' `ifcmd' `incmd' `wgtcmd', ///
+								endog(`dep2' = `indep2new', `option2') `option0'
+		}
 		
 		tempname margfailed
+
 		if inlist("`predict'","p11","p10","p01","p00","pcond1","pcond2"){
-			
+		
 			tempvar dep2orig
-			qui: clonevar `dep2orig' = `dep2'
+			qui: clonevar `dep2orig' = `dep2n'
 			
 			if inlist("`predict'","p11","p01","pcond1","pcond2"){
 			
-				qui: replace `dep2' = 1
+				qui: replace `dep2n' = 1
 				
-				cap noi margins `anything' `if' `in', /*
-							*/	predict(`predict') `dydx' `post' `level' `diopts'
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
 				scalar `margfailed' = _rc
-				qui: replace `dep2' = `dep2orig'
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
 			else{
-				qui: replace `dep2' = 0
+				qui: replace `dep2n' = 0
 				
-				cap noi margins `anything' `if' `in', /*
-							*/	predict(`predict') `dydx' `post' `level' `diopts'
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
 				scalar `margfailed' = _rc
-				qui: replace `dep2' = `dep2orig'
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
 		}
 		else{
-			cap noi margins `anything' `if' `in', /*
-						*/	predict(`predict') `dydx' `post' `level' `diopts'			
+		
+			cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
+			
 			scalar `margfailed' = _rc	
 		}
 	}
 	else if "`effect'" == "indirect"{
-		*! indirect marginal effect
-		qui: rbiprobit `dep1' = `indep1new' `ifcmd' `incmd', ///
-				endog(`dep2' = `indep2', `option2') `option0'
+
+		*! indirect marginal effect	
+		qui{
+			`pfxcmd' rbiprobit	`dep1' = `indep1new' `ifcmd' `incmd' `wgtcmd', ///
+								endog(`dep2' = `indep2', `option2') `option0'
+		}
 		
 		tempname margfailed
+		
 		if inlist("`predict'","p11","p10","p01","p00","pcond1","pcond2"){
-
+			
 			tempvar dep2orig
-			qui: clonevar `dep2orig' = `dep2'
+			qui: clonevar `dep2orig' = `dep2n'
 			
 			if inlist("`predict'","p11","p01","pcond1","pcond2"){
-
-				qui: replace `dep2' = 1
+			
+				qui: replace `dep2n' = 1
 				
-				cap noi margins `anything' `if' `in', /*
-						*/	predict(`predict') `post' `dydx' `level' `diopts'
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
 				scalar `margfailed' = _rc
-				qui: replace `dep2' = `dep2orig'
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
 			else{
-				qui: replace `dep2' = 0
+				qui: replace `dep2n' = 0
 				
-				cap noi margins `anything' `if' `in', /*
-						*/	predict(`predict') `post' `dydx' `level' `diopts'
+				cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 				
 				scalar `margfailed' = _rc
-				qui: replace `dep2' = `dep2orig'
+				
+				qui: replace `dep2n' = `dep2orig'
 			}
 		}
 		else{
-			cap noi margins `anything' `if' `in', /*
-						*/	predict(`predict') `post' `dydx' `level' `diopts'
+
+			cap noi margins `if' `in' `wgt', /*
+							*/	predict(`predict') `dydx' `vce'	/*
+							*/	`noweights'	`noesample' `force' /*
+							*/	`level' `post' `diopts'	
 			
 			scalar `margfailed' = _rc	
 		}			
 	}
+	
 	
 	*! adjust e() and r()
 	if "`effect'" == "direct" {
@@ -275,7 +371,9 @@ program define rbiprobit_margdec, eclass
 	}
 	
 	if `margfailed' != 0{
-		tempname bvec gradvec jacvec	
+				
+		tempname bvec gradvec jacvec
+		
 		mat `bvec' 		= e(b)
 		mat `gradvec'	= e(gradient)
 		
@@ -286,15 +384,20 @@ program define rbiprobit_margdec, eclass
 		exit `margfailed'
 	}				
 	else{
+	
+		*!	MARGDEC WORKED
+		
 		if "`post'" == "post"{
+			
 			tempname jacvec
 			
-			*!	e(cmd) and r(cmd) called margins in order marginsplot works
+			*!	e(cmd) and r(cmd) called margins to make marginsplot work
 			local marg_bascmd	= "margins"		
 			local marg_cmdl		= "rbiprobit margdec `0'"
 			
 			mat `jacvec' 	= e(Jacobian)
 
+			
 			MargErt, 	clonelist(`clonelist') origlist(`origlist') /*
 						*/ jacvec(`jacvec') /*
 						*/ cmdl("`marg_cmdl'") estcmdl(`rbipr_cmdl') bascmd(`marg_bascmd')
@@ -304,13 +407,14 @@ program define rbiprobit_margdec, eclass
 						*/ cmdl(`marg_cmdl') estcmdl(`rbipr_cmdl') bascmd(`marg_bascmd')
 		}
 		else{
+		
 			tempname bvec gradvec jacvec
 			
 			mat `bvec' 		= e(b)
 			mat `gradvec'	= e(gradient)
 			mat `jacvec' 	= r(Jacobian)
 			
-			*!	e(cmd) and r(cmd) called margins in order marginsplot works
+			*!	e(cmd) and r(cmd) called margins to make marginsplot work
 			local marg_bascmd	= "margins"	
 			local marg_cmdl		= "rbiprobit margdec `0'"
 									
@@ -326,15 +430,27 @@ program define rbiprobit_margdec, eclass
 end
 
 
+program define rmTS
+	
+	local tsnm = cond( match("`0'", "*.*"),  		/*
+			*/ bsubstr("`0'", 			/*
+			*/	  (index("`0'",".")+1),.),     	/*
+			*/ "`0'")
+
+	c_local rmTSvar `tsnm'
+end
+
+
+
 
 /* PARSING */
 
 *! parse dydx(), eyex(), dyex(), and dyex()
 program define ParseDyDx, rclass
-
+	version 11
 	syntax [, dydx(string) eyex(string) dyex(string) eydx(string) /*
-			*/ dep2(varname) matrix(name) dydxeffect(string) ]
-
+			*/ dep2(varname numeric ts) dep2n(varname) matrix(name) dydxeffect(string) ]
+	
 	return add
 	
 	if `"`dydx'"' != ""{
@@ -376,13 +492,14 @@ program define ParseDyDx, rclass
 			local lis_exp: subinstr local lis_exp "`part'" "", word
 		}
 	}
-
+			
+	
 	fvexpand `lis_exp'
 	local lis_exp = "`r(varlist)'"
 	
 	fvrevar `lis_exp', list
 	local indep_varn "`r(varlist)'"
-	local dep2hlp = "`dep2'"
+	local dep2hlp = "`dep2n'"
 	
 	local test: list indep_varn & dep2hlp
 	if "`test'" != ""{
@@ -392,6 +509,7 @@ program define ParseDyDx, rclass
 		exit 198
 	}				
 	
+
 	foreach spec of local lis_exp{
 		_ms_parse_parts `spec'
 		if `"`r(type)'"' == "interaction"{
@@ -424,6 +542,7 @@ program define ParseDyDx, rclass
 	local dydx: list dydx - dep2hlp
 	
 	
+
 	*! cleaning and binding lists
 	_ms_lf_info, matrix(`matrix')
 	
@@ -440,7 +559,7 @@ program define ParseDyDx, rclass
 	}
 	fvrevar `indepall', list
 	local indepall_varn "`r(varlist)'"
-	local indepall_varn: list uniq indepall_varn
+	local indepall_varn: list uniq indepall_varn	
 	
 	local dydx_new = "`dydx'"
 	foreach spec of local dydx{
@@ -454,8 +573,10 @@ program define ParseDyDx, rclass
 	}
 	local dydx = "`dydx_new'"
 	
+
 	*! deletion based on effect()
 	if "`dydxeffect'" == "direct"{
+		
 		local dydx_new = "`dydx'"
 		
 		foreach spec of local dydx{
@@ -470,6 +591,7 @@ program define ParseDyDx, rclass
 		local dydx = "`dydx_new'"
 	}
 	else if "`dydxeffect'" == "indirect"{
+		
 		local dydx_new = "`dydx'"
 		
 		foreach spec of local dydx{
@@ -489,23 +611,26 @@ end
 
 
 
+
+
+
 *! parse indepvars and indepvars_en
 program define ParseOrigIndep, rclass
 
-	syntax [, dep2(varname) matrix(name) ]
+	syntax [, dep2(varname numeric ts) matrix(name) ]
 
 	return add
-	
+
 	_ms_lf_info, matrix(`matrix')
 	
 	forvalue x = 1(1)`r(k_lf)'{
 		local indep`x' = "`r(varlist`x')'"
 	}
-	
+
 	fvexpand i.`dep2'
 	local dep2hlp = "`r(varlist)'"
 	local indep1: list indep1 - dep2hlp
-	
+
 	_ms_lf_info, matrix(`matrix')
 	
 	forvalue x = 1(1)`r(k_lf)'{
@@ -517,8 +642,11 @@ program define ParseOrigIndep, rclass
 	c_local indep1 		`indep1'
 	c_local indep2 		`indep2'
 	c_local indep1_varn `indep1_varn'
-	c_local indep2_varn `indep2_varn'	
+	c_local indep2_varn `indep2_varn'
+	
 end
+
+
 
 
 *! parse cloned indeps with tempvars
@@ -526,92 +654,78 @@ program define ParseClonIndep, rclass
 
 	syntax [, 	indep1(string) indep2(string) indep1varn(string) indep2varn(string) /*
 			*/	clone1(string) clone2(string) ]
-
+	
 	return add
 	
-	local indep1new = "`indep1'"
-	local indep2new = "`indep2'"
+	local indep1new = ""
+	local indep2new = ""
 	
 	forvalue x = 1(1)2{
 		
-		local varcnt : word count `indep`x'varn'
-		
-		forvalue y = 1(1)`varcnt'{
-		
-			local varnorg : word `y' of `indep`x'varn'
-			local varncln : word `y' of `clone`x''
-			
-			foreach spec of local indep`x'{
+		foreach spec of local indep`x'{
 				
-				_ms_parse_parts `spec'
+			_ms_parse_parts `spec'
 				
-				
-				if "`r(type)'" == "interaction"{
-					local change = ""
-					forvalue k = 1(1)`r(k_names)'{
-						if "`r(name`k')'" == "`varnorg'"{
-							local change = "`change'#`r(op`k')'.`varncln'"
-						}
-						else{
-							local change = "`change'#`r(op`k')'.`r(name`k')'"
-						}
-					}
-					
-					local change: subinstr local change "#" "" 
-					local indep`x'new: subinstr local indep`x'new "`spec'" "`change'", word
+			if "`r(type)'" == "interaction"{
+				local change = ""
+				forvalue k = 1(1)`r(k_names)'{
+					local posin:	list posof "`r(name`k')'" in indep`x'varn
+					local varncln:	word `posin' of `clone`x''
+					local change = "`change'#`r(op`k')'.`varncln'"
 				}
-				else if inlist("`r(type)'","variable","factor"){
-					if "`r(op)'" != ""{
-						if "`r(name)'" == "`varnorg'"{
-							local change = "`r(op)'.`varncln'"
-						}
-						else{
-							local change = "`r(op)'.`r(name)'"
-						}
-						local indep`x'new: subinstr local indep`x'new "`spec'" "`change'", word
-					}
-					else{
-						if "`r(name)'" == "`varnorg'"{
-							local change = "`varncln'"
-						}
-						else{
-							local change = "`r(name)'"
-						}
-						local indep`x'new: subinstr local indep`x'new "`spec'" "`change'", word
-					}
+
+				local change: subinstr local change "#" "" 
+				local indep`x'new = "`indep`x'new' `change'"
+			}
+			else if inlist("`r(type)'","variable","factor"){
+			
+				if "`r(op)'" != ""{
+					local posin:	list posof "`r(name)'" in indep`x'varn
+					local varncln:	word `posin' of `clone`x''
+					
+					local change = "`r(op)'.`varncln'"
+					local indep`x'new = "`indep`x'new' `change'"
+				}
+				else{
+					local posin:	list posof "`r(name)'" in indep`x'varn
+					local varncln:	word `posin' of `clone`x''
+					
+					local change = "`varncln'"
+					local indep`x'new = "`indep`x'new' `change'"
 				}
 			}
 		}
 	}
 	
 	c_local indep1new `indep1new'
-	c_local indep2new `indep2new'
+	c_local indep2new `indep2new'	
 end
+
+
 
 
 *! parse indepvars_en
 program define EndogEqMarg
 	
-	args dep2 indep2 option2 colon endog_eq
+	args dep2 indep2 option2 colon endog_eq	
 	
 	gettoken dep rest: endog_eq, parse(" =")
-	
-	c_local `dep2' `dep'
+
+	c_local `dep2' `dep'		
 	
 	*!	allow "=" after depvar_en
 	gettoken equals 0 : rest, parse(" =")
 	if "`equals'" != "=" { 
-		local 0 `"`rest'"' 
+		local 0 `"`rest'"' 			
 	}		
-		
+	
+	
 	*! parse indepvars_en
 	syntax [varlist(numeric default=none ts fv)], [*] 
-	
+			
 	c_local `indep2' `varlist'
 	c_local `option2' `options'	
 end
-
-
 
 
 
@@ -620,10 +734,11 @@ end
 
 *! adjust e()
 program define MargErt, eclass
-
+	
 	syntax [, 	cmdl(string) bascmd(string) estcmd(string) estcmdl(string) /*
 			*/	clonelist(string) origlist(string) /*
 			*/	bvec(name) gradvec(name) jacvec(name) ]
+	
 	
 	if "`bvec'" != ""{
 		tempname b
@@ -684,8 +799,13 @@ program define MargErt, eclass
 	}
 	if "`bascmd'" != ""{
 		ereturn local cmd 			= "`bascmd'"
-	}								
+	}
+								
 end
+
+
+
+
 
 
 *! adjust r()
@@ -722,5 +842,6 @@ program define MargRt, rclass
 	}
 	if "`bascmd'" != ""{
 		return local cmd 			= "`bascmd'"
-	}	
+	}
+	
 end

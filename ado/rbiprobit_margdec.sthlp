@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0: 13aug2021}{...}
+{* *! version 1.1.0: 18apr2022}{...}
 {vieweralsosee "[R] margins" "mansection R margins"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[R] marginsplot" "help marginsplot"}{...}
@@ -31,11 +31,9 @@
 {title:Syntax}
 
 {p 8 15 2}
-{cmd:rbiprobit margdec}
-{ifin}
-[{cmd:,} 
-{it:{help rbiprobit margdec##response_options:response_options}}
-{it:{help rbiprobit margdec##options_table:options}}] 
+{cmd:rbiprobit margdec} {ifin} [{it:{help rbiprobit margdec##weight:weight}}] [{cmd:,} 
+	{it:{help rbiprobit margdec##response_options:response_options}}
+	{it:{help rbiprobit margdec##options_table:options}}] 
 
 
 {marker response_options}{...}
@@ -58,11 +56,19 @@
 	semielasticity -- d(ln{it:y})/d({it:x}){p_end}
 {synoptline}
 
-
 {marker options_table}{...}
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
+{syntab:SE}
+{synopt:{cmd:vce(delta)}}estimate SEs using delta method; the default{p_end}
+{synopt:{cmd:vce(unconditional)}}estimate SEs allowing for sampling of covariates{p_end}
+
+{syntab:Advanced}
+{synopt:{opt noweight:s}}ignore weights specified in estimation{p_end}
+{synopt:{opt noe:sample}}do not restrict {cmd:rbiprobit margdec} to the estimation sample{p_end}
+{synopt :{opt force}}estimate margins despite potential problems{p_end}
+	
 {syntab:Reporting}
 {synopt:{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
 {synopt:{opt post}}post margins and their VCE as estimation results{p_end}
@@ -73,8 +79,14 @@
 {synoptline}
 {p2colreset}{...}
 
-{p 4 6 2}Time-series operators are allowed if they were used in the estimation.{p_end}
-
+{p 4 6 2}
+	Time-series operators are allowed if they were used in the estimation.
+	{p_end}
+{marker weight}{...}
+{p 4 6 2}
+	{opt pweight}s, {opt fweight}s, and {opt iweight}s are allowed; see {help weight}.
+	{p_end}
+	
 {marker description}{...}
 {title:Description}
 
@@ -149,6 +161,11 @@ The above sections are not included in this help file.
 	{it:varlist} in {it:indepvars}_en and not taking into account the appearance of 
 	{it:varlist} in {it:indepvars}.
 	
+{pmore}
+	Differentiation between effectypes is not approriate for predictions {bf:pmarg1},
+	{bf:pmarg2}, {bf:xb1} and {bf:xb2}. These predictions can't combined with
+	{opt effect(direct)} or {opt effect(indirect)}.
+	
 {phang} 
 	{opt predict(pred_opt)} specifies the response. If {cmd:predict()} is not specified, 
 	the response will be the default prediction that would be produced by {cmd:predict} 
@@ -163,13 +180,76 @@ The above sections are not included in this help file.
 	allowed with {cmd:rbiprobit margdec}.
 
 {phang}
-{opth dydx(varlist)}, {opt eyex(varlist)}, {opt dyex(varlist)}, and
-{opt eydx(varlist)} 
-    request that {cmd:rbiprobit margdec} report derivatives of the response 
-    with respect to {it:varlist} rather than on the response itself.
-    {cmd:eyex()}, {cmd:dyex()}, and {cmd:eydx()} report derivatives 
-    as elasticities; see 
-{it:{mansection R marginsRemarksandexamplesExpressingderivativesaselasticities:Expressing derivatives as elasticities}} in {manlink R margins}.
+	{opth dydx(varlist)}, {opt eyex(varlist)}, {opt dyex(varlist)}, and {opt eydx(varlist)} 
+	request that {cmd:rbiprobit margdec} report derivatives of the response with respect 
+	to {it:varlist} rather than on the response itself. {cmd:eyex()}, {cmd:dyex()}, and 
+	{cmd:eydx()} report derivatives as elasticities; see 
+	{it:{mansection R marginsRemarksandexamplesExpressingderivativesaselasticities:Expressing derivatives as elasticities}} in {manlink R margins}.
+
+{pmore}
+    In contrast to {cmd:margins} command, multiple {opt dydx()}, {opt eyex()}, {opt dyex()}, 
+	or {opt eydx()} options are not  allowed with {cmd:rbiprobit margdec}.
+
+{dlgtab:SE}
+
+{phang}
+	{cmd:vce(delta)} and {cmd:vce(unconditional)} specify how the VCE and, correspondingly, 
+	standard errors are calculated.
+
+{phang2}
+    {cmd:vce(delta)} is the default.  The delta method is applied to the formula 
+	for the response and the VCE of the estimation command. This method assumes that 
+	values of the covariates used to calculate the response are 
+    given or that the data are given.
+
+{phang2}
+    {cmd:vce(unconditional)} specifies that the covariates that are not fixed
+    be treated in a way that accounts for their having been sampled.  The VCE
+    is estimated using the linearization method.  This method allows for
+    heteroskedasticity or other violations of distributional assumptions and 
+    allows for correlation among the observations in the same  manner as 
+    {cmd:vce(robust)} and {cmd:vce(cluster }{it:...}{cmd:)}, which
+    may have been specified with {cmd:rbiprobit}.
+	 
+{dlgtab:Advanced}
+
+{phang}
+	{opt noweights} specifies that any weights specified on the previous estimation command 
+	be ignored by {opt rbiprobit margdec}.  By default, {opt rbiprobit margdec} uses the 
+	weights specified in {opt rbiprobit} to average responses and to compute summary
+	statistics.  If weights are specified on the {opt rbiprobit margdec} command, 
+	they override previously specified weights, making it unnecessary to specify {opt noweights}.  
+	The {opt noweights} option is not allowed after {opt svy:} estimation when the 
+	{cmd: vce(unconditional)} option is specified.
+
+{phang}
+	{opt noesample} specifies that {cmd:rbiprobit margdec} not restrict its computations to the
+    estimation sample used by the previous estimation command. See 
+	{it:{mansection R marginsRemarksandexamplesExample15Marginsevaluatedoutofsample:Example 15: Margins evaluated out of sample}} in {manlink R margins}.
+
+{pmore}
+    With the default delta-method VCE, {opt noesample} margins may
+    be estimated on samples other
+    than the estimation sample; such results are valid under the
+    assumption that the data used are treated as being given.
+
+{pmore}
+    You can specify {cmd:noesample} and {cmd:vce(unconditional)} together, but
+    if you do, you should be sure that the data in memory correspond
+    to the original {cmd:e(sample)}. To show that you understand that, 
+    you must also specify the {cmd:force} option. Be aware that making 
+    the {cmd:vce(unconditional)} calculation on a sample different from 
+    the estimation sample would be equivalent to 
+    estimating the coefficients on one set of data and computing the scores
+    used by the linearization on another set; see {manlink P _robust}.
+	
+{phang} 
+	{opt force} instructs {cmd:rbiprobit margdec} to proceed in some situations where it would
+    otherwise issue an error message because of apparent violations of
+    assumptions.  Do not be casual about specifying {cmd:force}. You need to
+    understand and fully evaluate the statistical issues. For an example
+    of the use of {cmd:force}, see 
+	{it:{mansection R marginsRemarksandexamplesUsingmarginsaftertheestimatesusecommand:Using margins after the estimates use command}} in {manlink R margins}.
 
 
 {dlgtab:Reporting}
@@ -266,6 +346,26 @@ box.
 
 {marker examples}{...}
 {title:Examples}
+
+{pstd}Setup{p_end}
+{phang2}{cmd:. webuse class10}{p_end}
+{phang2}{cmd:. rbiprobit graduate = income i.roommate i.hsgpagrp,}
+		{cmd: endog(program = i.campus i.scholar income i.hsgpagrp)}{p_end}
+
+{pstd}Compute total, direct, and indirect average marginal effects of {cmd:income} 
+		on the joint probability Pr({it:depvar}=1, {it:depvar}_en=1){p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(income) predict(p11) effect(total)}{p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(income) predict(p11) effect(direct)}{p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(income) predict(p11) effect(indirect)}{p_end}
+
+{pstd}Compute indirect average marginal effects of {it:all} independent variables 
+		on the joint probability Pr({it:depvar}=1, {it:depvar}_en=0) and plot the results{p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(*) predict(p10) effect(direct)}{p_end}
+{phang2}{cmd:. marginsplot}{p_end}
+
+{pstd}Compute average marginal effects of {cmd:hsgpagrp} on the marginal probabilities{p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(hsgpagrp) predict(pmarg1)}{p_end}
+{phang2}{cmd:. rbiprobit margdec, dydx(hsgpagrp) predict(pmarg2)}{p_end}
 
 
 {marker results}{...}

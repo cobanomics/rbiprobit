@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0: 13aug2021}{...}
+{* *! version 1.1.0: 18apr2022}{...}
 {vieweralsosee "rbiprobit" "help rbiprobit"}{...}
 {viewerjumpto "Postestimation commands" "rbiprobit postestimation##description"}{...}
 {viewerjumpto "Syntax for predict" "rbiprobit postestimation##syntax_predict"}{...}
@@ -33,10 +33,26 @@ The following postestimation commands are available after {cmd:rbiprobit}:
 {synoptset 17 tabbed}{...}
 {p2coldent :Command}Description{p_end}
 {synoptline}
+INCLUDE help post_contrast
+INCLUDE help post_estatic
+INCLUDE help post_estatsum
+INCLUDE help post_estatvce
+INCLUDE help post_svy_estat
+INCLUDE help post_estimates
+INCLUDE help post_hausman_star
+INCLUDE help post_lincom
+INCLUDE help post_lrtest_star
+INCLUDE help post_nlcom
 {synopt :{helpb rbiprobit postestimation##predict:predict}}predictions, residuals, influence statistics, and other diagnostic measures{p_end}
 INCLUDE help post_predictnl
+INCLUDE help post_pwcompare
+INCLUDE help post_test
+INCLUDE help post_testnl
 {synoptline}
 {p2colreset}{...}
+{p 4 6 2}
+* {cmd:hausman} and {cmd:lrtest} are not appropriate with {cmd:svy} estimation results.
+{p_end}
 
 
 {marker syntax_predict}{...}
@@ -48,7 +64,7 @@ INCLUDE help post_predictnl
 {dtype}
 {newvar} 
 {ifin}
-[{cmd:,} {it:statistic} ]
+[{cmd:,} {it:statistic} {opt nooff:set}]
 
 {p 8 16 2}
 {cmd:predict}
@@ -133,27 +149,55 @@ predicted probability of success Pr({it:depvar}_en=1 | {it:depvar}=1).
 {opt stdp1} calculates the standard error of the linear prediction of the outcome equation.
 
 {phang}
-{opt stdp2} calculates the standard error of the linear prediction of the treatment equation.
+	{opt stdp2} calculates the standard error of the linear prediction of the treatment equation.
 
 {phang}
-{opt scores} calculates equation-level score variables.
+	{opt nooffset} is relevant only if you specified {opth offset(varname)} for the
+	outcome equation and/or treatment equation for {cmd:rbiprobit}. It modifies the 
+	calculations made by {opt predict} so that they ignore the offset variables; 
+	the linear predictions are treated as {opt xb1} rather than as {opt xb1} + {it:offset1} 
+	and {opt xb2} rather than as {opt xb2} + {it:offset2} 
+
+{phang}
+	{opt scores} calculates equation-level score variables.
 
 {pmore}
-The first new variable will contain the derivative of the log likelihood with
-respect to the first regression equation.
+	The first new variable will contain the derivative of the log likelihood with
+	respect to the first regression equation.
 
 {pmore}
-The second new variable will contain the derivative of the log likelihood with
-respect to the second regression equation.
+	The second new variable will contain the derivative of the log likelihood with
+	respect to the second regression equation.
 
 {pmore}
-The third new variable will contain the derivative of the log likelihood with
-respect to the third equation ({hi:atanrho}).
+	The third new variable will contain the derivative of the log likelihood with
+	respect to the third equation ({hi:atanrho}).
 
 
 {marker examples}{...}
 {title:Examples}
 
+{pstd}Setup{p_end}
+{phang2}{cmd:. webuse class10}{p_end}
+{phang2}{cmd:. rbiprobit graduate = income i.roommate i.hsgpagrp,}
+		{cmd: endog(program = i.campus i.scholar income i.hsgpagrp)}{p_end}
+
+{pstd}Predicted probability {cmd:graduate} = 1 and {cmd:program} = 1{p_end}
+{phang2}{cmd:. predict prob11}{p_end}
+
+{pstd}Predicted probability {cmd:graduate} = 1 and {cmd:program} = 0{p_end}
+{phang2}{cmd:. predict prob10, p10}{p_end}
+
+{pstd}Predicted probability {cmd:graduate} = 1 given {cmd:program} = 1{p_end}
+{phang2}{cmd:. predict grad_given_prog, pcond1}{p_end}
+
+{pstd}Test whether the coefficients of {cmd:income} are equal across equations{p_end}
+{phang2}{cmd:. test [graduate=program]: income}{p_end}
+
+{pstd}Test whether the coefficients on the highest category of {cmd:hsgpagrp} are 
+		jointly 0 across equations{p_end}
+{phang2}{cmd:. test [graduate]: 35.hsgpagrp = 0, notest}{p_end}
+{phang2}{cmd:. test [program]: 35.hsgpagrp = 0, accumulate}{p_end}
 
 {marker author}{...}
 {title:Author}

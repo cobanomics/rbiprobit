@@ -1,4 +1,4 @@
-*! version 1.0.0 , 13aug2021
+*! version 1.1.0 , 18apr2022
 *! Author: Mustafa Coban, Institute for Employment Research (Germany)
 *! Website: mustafacoban.de
 *! Support: mustafa.coban@iab.de
@@ -8,17 +8,19 @@
 /*    			 rbiprobit lf1 evaluator						*/
 /****************************************************************/
 
+
+
 program define rbiprobit_lf1
 
-	version 15.1						
-	args todo b lnfi g1 g2 g3 H
+	version 11						
+	args todo b lnfi g1 g2 g3 H		//	Siehe Beschreibung oben
 	
 	tempvar xb zg 
 	tempname arho
 		
 	mleval `xb'  = `b', eq(1)
 	mleval `zg'  = `b', eq(2)
-	mleval `arho' = `b', eq(3) scalar
+	mleval `arho' = `b', eq(3) scalar	
 	
 	if `arho' < -14 {
 		scalar `arho' = -14
@@ -26,12 +28,14 @@ program define rbiprobit_lf1
 	if `arho' > 14{
 		scalar `arho' = 14
 	}
-		
+	
+	
 	tempname rho drdk d2rd2k
 	scalar `rho' 	= (exp(2*`arho')-1) / (1+exp(2*`arho'))
 	scalar `drdk' 	= (4 * exp(2*`arho')) / ( (1+exp(2*`arho'))*(1+exp(2*`arho')) )
 	scalar `d2rd2k' = 8 * exp(2*`arho') * (1-exp(2*`arho')) ///
 						/ ( (1+exp(2*`arho'))*(1+exp(2*`arho'))*(1+exp(2*`arho')) )
+			
 	
 	tempname q1 q2
 	
@@ -44,7 +48,7 @@ program define rbiprobit_lf1
 	if (`todo' == 0) exit
 	
 	
-	*! notational shortcuts	
+	*!	notational shortcuts		
 	tempvar w1 w2 rhost etast v1 v2 s1 s2 Phi2 phi2
 	
 	quietly{ 
@@ -67,8 +71,8 @@ program define rbiprobit_lf1
 		gen double `phi2' = `etast' * normalden(`w1') * normalden(`v1') // Greene's Equiv.
 	}
 		
-		//	SCORES
-		
+
+	*!	scores	
 	tempvar scr1 scr2 scr3
 	
 	quietly{
@@ -82,4 +86,5 @@ program define rbiprobit_lf1
 	}
 	
 	if (`todo' == 1) exit
+	
 end

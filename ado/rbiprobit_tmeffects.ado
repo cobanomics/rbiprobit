@@ -1,4 +1,4 @@
-*! version 1.0.0 , 13aug2021
+*! version 1.1.0 , 18apr2022
 *! Author: Mustafa Coban, Institute for Employment Research (Germany)
 *! Website: mustafacoban.de
 *! Support: mustafa.coban@iab.de
@@ -9,23 +9,44 @@
 /****************************************************************/
 
 
+/*-------------------TREATMENT EFFECTS COMMAND --------------------------*/
+
+
 /* TREATMENT EFFECTS */
 program define rbiprobit_tmeffects, eclass
 	
-	version 15.1
-	syntax [anything] [if] [in] [, 		/*
-				*/	TMEFFect(string) 	/*
-				*/	post 				/*
-				*/	Level(cilevel)		/*
+	version 11
+	syntax [anything] [if] [in] [pw fw iw] [, 		/*
+				*/	TMEFFect(string) VCE(passthru) NOWEIGHTs	/*
+				*/	NOEsample force	Level(cilevel) post	/*
 				*/	*]
 	
 	if ("`e(cmd)'" != "rbiprobit") error 301
 
+	local wtype `weight'
+	local wtexp `"`exp'"'
+	if "`weight'" != "" { 
+		local wgt `"[`weight'`exp']"'  
+	}
+	
 	if "`level'" != ""{
 		local level "level(`level')"
 	}
-
+	
 	local margopts0 `options'
+	_get_diopts diopts margopts0, `margopts0'
+	
+	if "`margopts0'" != ""{
+		dis as err "Following options or their multiples are not allowed: {bf: `margopts0'}"
+		dis as res	"See {help rbiprobit tmeffects}." 
+		exit 198
+	}
+	
+	if "`anything'" != ""{
+		dis as err "{it: marginlist} not allowed."
+		exit 198
+	}
+
 	
 	*! tmeffect()
 	if "`tmeffect'" == ""{
@@ -39,14 +60,15 @@ program define rbiprobit_tmeffects, eclass
 	tokenize `e(depvar)'
 	local dep1 `1'
 	local dep2 `2'	
-	
+
 	
 	*! estimation of ate, atet, and atec
 	tempname margfailed
 	
 	if "`tmeffect'" == "ate"{		
-		cap qui margins `if' `in', /*
-				*/	dydx(`dep2') predict(pmarg1) `post'
+		cap qui margins `if' `in' `wgt', /*
+				*/	dydx(`dep2') predict(pmarg1) `vce' /*
+				*/	`noweights' `noesample' `force' `post'
 	}
 	else if "`tmeffect'" == "atet"{
 		if "`if'" != ""{
@@ -55,12 +77,14 @@ program define rbiprobit_tmeffects, eclass
 		else{
 			local iftot "if `dep2' == 1"
 		}		
-		cap qui margins `iftot' `in', /*
-					*/	dydx(`dep2') predict(pmargcond1) `post'	
+		cap qui margins `iftot' `in' `wgt', /*
+					*/	dydx(`dep2') predict(pmargcond1) `vce'	/*
+					*/	`noweights' `noesample' `force' `post' 
 	}
 	else if "`tmeffect'" == "atec"{
-		cap qui margins `if' `in', /*
-				*/	exp(predict(pcond1)-predict(pcond10)) `post'
+		cap qui margins `if' `in' `wgt', /*
+				*/	exp(predict(pcond1)-predict(pcond10)) `vce'	/*
+				*/	`noweights' `noesample' `force' `post' 
 	}
 	
 	scalar `margfailed' = _rc
@@ -68,23 +92,29 @@ program define rbiprobit_tmeffects, eclass
 	if `margfailed' != 0{
 		exit `margfailed'
 	}
+
 	
-	*! adjust output table		
+	*! adjust output table			
 	if "`post'" == ""{
+		
 		tempname sampyes
 		qui: gen byte 	`sampyes' = 1		if e(sample)
 		qui: replace	`sampyes' = 0		if `sampyes' == .
-	
-		*!	safe e() and r() from margins	
+		
+		*!	safe e() and r() from margins
 		foreach y in scalars macros matrices{
 			local elis_`y': e(`y')
 			local elis_`y'_cnt: word count `elis_`y''
 		}
+		
+		
+		*!	Extract "b", "V", and "Cns" from Matrices-List of e()
 		local elis_matrices: subinstr local elis_matrices `"b"' "", word
 		local elis_matrices: subinstr local elis_matrices `"V"' "", word
 		local elis_matrices: subinstr local elis_matrices `"Cns"' "", word
 		local elis_matrices_cnt: word count `elis_matrices'
 
+									
 		forvalue y = 1(1)`elis_scalars_cnt'{
 			tempname eret_scalars_c`y'
 			local wd: word `y' of `elis_scalars'
@@ -107,6 +137,7 @@ program define rbiprobit_tmeffects, eclass
 			matrix `eret_post_`x'' = e(`x')
 		}
 				
+		
 		*!	change current e() with r()
 		postrtoe
 		
@@ -114,14 +145,16 @@ program define rbiprobit_tmeffects, eclass
 		tempname retoriginal
 		_return hold `retoriginal'
 		
+		
 		*! display output table
-		TmEff_Disp, `tmeffect' dep1(`dep1') dep2(`dep2') `level' `margopts0'
-		
-		
+		TmEff_Disp, `tmeffect' dep1(`dep1') dep2(`dep2') `level' `diopts'
+				
+
 		*!	restore original e() from margins
 		ereturn post	`eret_post_b' `eret_post_V' `eret_post_Cns' ///
 						, esample(`sampyes')
-				
+		
+		
 		forvalue y = 1(1)`elis_scalars_cnt'{
 			local wd: word `y' of `elis_scalars'
 			if inlist("`wd'","k_autoCns","consonly","noconstant"){
@@ -131,7 +164,7 @@ program define rbiprobit_tmeffects, eclass
 				ereturn scalar `wd' = `eret_scalars_c`y''
 			}
 		}
-						
+							
 		forvalue y = 1(1)`elis_macros_cnt'{
 			local wd: word `y' of `elis_macros'
 			if inlist("`wd'","marginsderiv","diparm1","crittype","singularHmethod"){
@@ -147,6 +180,7 @@ program define rbiprobit_tmeffects, eclass
 			ereturn matrix `wd' = `eret_matrices_c`y''
 		}
 			
+		
 		*! restore original r() from margins	
 		_return restore `retoriginal'
 		
@@ -156,17 +190,19 @@ program define rbiprobit_tmeffects, eclass
 	else{
 		
 		*! display output table
-		TmEff_Disp, `tmeffect' dep1(`dep1') dep2(`dep2') `level' `margopts0'
-
+		TmEff_Disp, `tmeffect' dep1(`dep1') dep2(`dep2') `level' `diopts'
+		
 		*! adjust e()
 		TmEff_Ert `if' `in', `tmeffect' dep1(`dep1') dep2(`dep2')
 		
 		*! adjust r()
 		TmEff_Rt `if' `in', `post' `tmeffect' dep1(`dep1') dep2(`dep2')
 		
-	}			
+	}
+			
 	exit `margfailed'
 end
+
 
 
 
@@ -176,25 +212,25 @@ program define TmEff_Disp, eclass
  	syntax [anything] [, ate atet atec dep1(string) dep2(string) /*
 					*/	Level(cilevel) /*
 					*/	* ]
-	
-	local margopts0 `options'
-	_get_diopts diopts margopts0, `margopts0'
+		
+	local diopts `options'
 	
 	if "`level'" != ""{
 		local level "level(`level')"
 	}	
-	
+
 	*! table header
 	_coef_table_header, title(Treatment effect)
-
+	
+	
 	if "`e(vce)'" == "delta"{
 		vceHeader
 	}
-
+	
 	if "`ate'" != ""{
 		local label `"`e(predict_label)'"'
 		local label `"`label', `e(expression)'"'
-		dis 
+		dis
 	
 		Legend Expression `"`label'"'
 		Legend Effect `"Average treatment effect"'
@@ -202,7 +238,7 @@ program define TmEff_Disp, eclass
 	
 	if "`atet'" != ""{
 		local label `"normal(`dep1'=1|`dep2'=1) - normal(`dep1'=1|`dep2'=0)"'
-		dis 
+		dis
 	
 		Legend Expression `"`label'"'
 		Legend Effect `"Average treatment effect on the treated"'
@@ -211,12 +247,12 @@ program define TmEff_Disp, eclass
 	if "`atec'" != ""{
 		local label `"Pr(`dep1'=1|`dep2'=1)-Pr(`dep1'=1|`dep2'=0)"'
 		local label `"`label', `e(expression)'"'
-		dis 
+		dis
 	
 		Legend Expression `"`label'"'
 		Legend Effect `"Average treatment effect on conditional probability"'
 	}
-
+	
 	if "`atec'" != ""{
 		local xvars `"1.`dep2'"'
 	}
@@ -231,9 +267,9 @@ program define TmEff_Disp, eclass
 		}
 	}
 	Legend "dydx w.r.t." "`XVARS'"
-	dis 
+	dis
 	
-	
+
 	*! output table
 	tempname bmat vmat errmat
 	mat `bmat' = e(b)
@@ -259,6 +295,7 @@ program define TmEff_Disp, eclass
 	ereturn matrix error = `errmat'
 	
 	
+	
 	version 11, missing:  /*
 		*/	_coef_table,  coeftitle(dy/dx) `level' `diopts'
 end
@@ -267,13 +304,8 @@ end
 
 *! taken from _marg_report
 program define vceHeader
-	
+
 	local model_vce `"`e(model_vcetype)'"'
-	
-	*!	Hier werden auch andere VCE als OIM abgedeckt
-	*!	Wenn ich Robust/Cluster eingebaut habe, muss man mal schauen
-	*!	wo "model_vcetype" abgespeichert wird (OFFENER PUNKT)
-	
 	
 	if !`:length local model_vce' {
 		local model_vce `"`e(model_vce)'"'
@@ -291,8 +323,11 @@ program define vceHeader
 end
 
 
+
 *! taken from _marg_report
 program define Legend
+
+	version 11
 	args name value
 	local len = strlen("`name'")
 	local c2 = 14
@@ -335,7 +370,10 @@ program define TmEff_Rt, rclass
 		local expression_label = "Pr(`dep1'=1|`dep2'=1)-Pr(`dep1'=1|`dep2'=0)"
 	}		
 	
+	
+	
 	if "`post'" == ""{
+	
 		tempname bmat vmat errmat tabl Jac Nmat 
 		
 		mat `bmat' = r(b)
@@ -366,7 +404,7 @@ program define TmEff_Rt, rclass
 		mat colnames `Nmat' = `ate'`atet'`atec'
 		
 		return add
-
+		
 		return matrix b 		= `bmat'
 		return matrix V 		= `vmat'
 		return matrix error 	= `errmat'
@@ -375,6 +413,7 @@ program define TmEff_Rt, rclass
 		return matrix _N 		= `Nmat'
 	}
 	else{
+			
 		return add
 		
 		foreach y in scalars macros matrices{
@@ -419,8 +458,9 @@ program define TmEff_Rt, rclass
 	}
 	else if "`atec'" != ""{
 		return local expression_label "`expression_label'"
-	}		
+	}	
 end
+
 
 
 *! adjust e()
@@ -445,7 +485,7 @@ program define TmEff_Ert, eclass
 	else if "`atec'" != ""{	
 		local effect	= "Average treatment effect on conditional probability"		
 		local expression_label = "Pr(`dep1'=1|`dep2'=1)-Pr(`dep1'=1|`dep2'=0)"
-	}	
+	}
 		
 	tempname Jac Nmat 
 	
