@@ -6,7 +6,7 @@
 2. [Conventional Postestimation Commands](#2-conventional-postestimation-commands)
 3. [Treatment Effects](#3-treatment-effects)
 4. [Marginal Effects](#4-marginal-effects)
-5. [Examples](5-examples)
+5. [Examples](#5-examples)
 6. [References](#6-references)
 7. [About](#7-about)
 8. [How to install](#8-how-to-install)
