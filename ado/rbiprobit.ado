@@ -72,7 +72,6 @@ end
 
 program define Estimate, eclass
 	
-	
 	*!	syntax based on biprobit and heckprobit
 	gettoken dep1 0 : 0, parse(" =,[")
 	_fv_check_depvar `dep1'	

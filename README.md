@@ -562,6 +562,10 @@ webpage:       [mustafacoban.de](https://www.mustafacoban.de)
 
 The latest version can be obtained via
 ```git
+ssc install rbiprobit
+```
+or
+```git
 net install rbiprobit, from("https://cobanomics.github.io/rbiprobit/")
 ```
 
